@@ -4,20 +4,20 @@
 
 struct Option
 {
-  float s0 = 100.0f; // цена акции в начальное время
-  float T = 3.0f; // время исполнения опциона в годах
-  float K = 100.0f; // страйк
-  float C; // Справедливая цена опциона
+  float s0 = 100.0f; // С†РµРЅР° Р°РєС†РёРё РІ РЅР°С‡Р°Р»СЊРЅРѕРµ РІСЂРµРјСЏ
+  float T = 3.0f; // РІСЂРµРјСЏ РёСЃРїРѕР»РЅРµРЅРёСЏ РѕРїС†РёРѕРЅР° РІ РіРѕРґР°С…
+  float K = 100.0f; // СЃС‚СЂР°Р№Рє
+  float C; // РЎРїСЂР°РІРµРґР»РёРІР°СЏ С†РµРЅР° РѕРїС†РёРѕРЅР°
 };
 
-const float sig = 0.2f; // волатильность
-const float r = 0.05f; // процентная ставка
+const float sig = 0.2f; // РІРѕР»Р°С‚РёР»СЊРЅРѕСЃС‚СЊ
+const float r = 0.05f; // РїСЂРѕС†РµРЅС‚РЅР°СЏ СЃС‚Р°РІРєР°
 
-float start, finish; // замеры времени (засечки)
-float dt; // время работы блока кода (изменение времени)
-const int N = 20000000; // количество опционов для подсчёта
+float start, finish; // Р·Р°РјРµСЂС‹ РІСЂРµРјРµРЅРё (Р·Р°СЃРµС‡РєРё)
+float dt; // РІСЂРµРјСЏ СЂР°Р±РѕС‚С‹ Р±Р»РѕРєР° РєРѕРґР° (РёР·РјРµРЅРµРЅРёРµ РІСЂРµРјРµРЅРё)
+const int N = 20000000; // РєРѕР»РёС‡РµСЃС‚РІРѕ РѕРїС†РёРѕРЅРѕРІ РґР»СЏ РїРѕРґСЃС‡С‘С‚Р°
 
-const float invsqrt2 = sqrt(2.0f); // инварианты
+const float invsqrt2 = sqrt(2.0f); // ГЁГ­ГўГ Г°ГЁГ Г­ГІГ»
 const float inv_square_sig = sig * sig;
 
 void GetOptionPrices(Option* opt)
@@ -30,7 +30,7 @@ void GetOptionPrices(Option* opt)
     for (int i = 0; i < N; i++)
     {
       opt[i].K = (float)rand() / (float)RAND_MAX * (250.0f - 50.0f) + 50.0f;
-      opt[i].s0 = (float)rand() / (float)RAND_MAX * (150.0f - 50.0f) + 50.0f; // Случайные числа в диапазоне
+      opt[i].s0 = (float)rand() / (float)RAND_MAX * (150.0f - 50.0f) + 50.0f; // РЎР»СѓС‡Р°Р№РЅС‹Рµ С‡РёСЃР»Р° РІ РґРёР°РїР°Р·РѕРЅРµ
       opt[i].T = (float)rand() / (float)RAND_MAX * (5.0f - 1.0f) + 1.0f;
 
       d1 = log(opt[i].s0 / opt[i].K) + ((r + (inv_square_sig / 2.0f) * opt[i].T) / (sig * sqrt(opt[i].T)));
