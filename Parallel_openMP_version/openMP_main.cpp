@@ -17,7 +17,7 @@ float start, finish; // замеры времени (засечки)
 float dt; // время работы блока кода (изменение времени)
 const int N = 20000000; // количество опционов для подсчёта
 
-const float invsqrt2 = sqrt(2.0f); // èíâàðèàíòû
+const float invsqrt2 = sqrt(2.0f); // инварианты
 const float inv_square_sig = sig * sig;
 
 void GetOptionPrices(Option* opt)
@@ -29,16 +29,12 @@ void GetOptionPrices(Option* opt)
     #pragma omp for
     for (int i = 0; i < N; i++)
     {
-      opt[i].K = (float)rand() / (float)RAND_MAX * (250.0f - 50.0f) + 50.0f;
-      opt[i].s0 = (float)rand() / (float)RAND_MAX * (150.0f - 50.0f) + 50.0f; // Случайные числа в диапазоне
-      opt[i].T = (float)rand() / (float)RAND_MAX * (5.0f - 1.0f) + 1.0f;
+      d1 = log(opt[i].s0 / opt[i].K) + ((r + (inv_square_sig * 0.5f) * opt[i].T) / (sig * sqrt(opt[i].T)));
+      d2 = log(opt[i].s0 / opt[i].K) + ((r - (inv_square_sig * 0.5f) * opt[i].T) / (sig * sqrt(opt[i].T)));
+      erf1 = 0.5f + std::erf(d1 / invsqrt2) * 0.5f;
+      erf2 = 0.5f + std::erf(d2 / invsqrt2) * 0.5f;
 
-      d1 = log(opt[i].s0 / opt[i].K) + ((r + (inv_square_sig / 2.0f) * opt[i].T) / (sig * sqrt(opt[i].T)));
-      d2 = log(opt[i].s0 / opt[i].K) + ((r - (inv_square_sig / 2.0f) * opt[i].T) / (sig * sqrt(opt[i].T)));
-      erf1 = 0.5f + erf(d1 / invsqrt2) / 2.0f;
-      erf2 = 0.5f + erf(d2 / invsqrt2) / 2.0f;
-
-      opt[i].C = opt[i].s0 * erf1 - opt[i].K * exp(-1.0f * r * opt[i].T) * erf2;
+      opt[i].C = opt[i].s0 * erf1 - opt[i].K * exp((-1.0f) * r * opt[i].T) * erf2;
     }
   }
 }
@@ -46,6 +42,13 @@ void GetOptionPrices(Option* opt)
 int main(int argc, char* argv[])
 {
   Option* sample = new Option[N];
+  
+  for (int i = 0; i < N; i++)
+  {
+    sample[i].K = (float)rand() / (float)RAND_MAX * (250.0f - 50.0f) + 50.0f;
+    sample[i].s0 = (float)rand() / (float)RAND_MAX * (150.0f - 50.0f) + 50.0f; // Случайные числа в диапазоне
+    sample[i].T = (float)rand() / (float)RAND_MAX * (5.0f - 1.0f) + 1.0f;
+  }
 
   start = omp_get_wtime();
   GetOptionPrices(sample);
