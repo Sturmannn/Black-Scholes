@@ -29,12 +29,12 @@ void GetOptionPrices(Option* opt)
     #pragma omp for
     for (int i = 0; i < N; i++)
     {
-      d1 = log(opt[i].s0 / opt[i].K) + ((r + (inv_square_sig * 0.5f) * opt[i].T) / (sig * sqrt(opt[i].T)));
-      d2 = log(opt[i].s0 / opt[i].K) + ((r - (inv_square_sig * 0.5f) * opt[i].T) / (sig * sqrt(opt[i].T)));
-      erf1 = 0.5f + std::erf(d1 / invsqrt2) * 0.5f;
-      erf2 = 0.5f + std::erf(d2 / invsqrt2) * 0.5f;
+      d1 = (log(opt.s0 / opt.K) + (r + inv_square_sig / 2) * opt.T) / (sig * sqrt(opt.T));
+      d2 = (log(opt.s0 / opt.K) + (r - inv_square_sig / 2) * opt.T) / (sig * sqrt(opt.T));
+      erf1 = 0.5f + erf(d1 / invsqrt2) * 0.5f;
+      erf2 = 0.5f + erf(d2 / invsqrt2) * 0.5f;
 
-      opt[i].C = opt[i].s0 * erf1 - opt[i].K * exp((-1.0f) * r * opt[i].T) * erf2;
+      opt.C = opt.s0 * erf1 - opt.K * exp((-1.0f) * r * opt.T) * erf2;
     }
   }
 }
