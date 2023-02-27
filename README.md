@@ -1,1 +1,1 @@
-# Black-Scholes
+# Black-Scholes optimization
