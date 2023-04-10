@@ -1,3 +1,7 @@
+build
+
+setvars.bat
+
 # Prerequisites
 *.d
 
