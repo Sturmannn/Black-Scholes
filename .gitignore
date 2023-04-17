@@ -1,5 +1,8 @@
-setvars.bat
+.gitignore
+setvars.sh
 build
+measurements.txt
+measurements/Get_Measurements
 
 # Prerequisites
 *.d
