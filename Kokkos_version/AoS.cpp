@@ -1,73 +1,77 @@
 
-#include <Kokkos_Core.hpp>
-#include <cmath>
-#include <string>
-
-int main(int argc, char* argv[]) {
-  Kokkos::initialize(
-    Kokkos::InitializationSettings()
-    .set_disable_warnings(false)
-    .set_num_threads(4));
-  //Kokkos::initialize(argc, argv);
-  Kokkos::DefaultExecutionSpace{}.print_configuration(std::cout);
-
-  if (argc < 2) {
-    std::cout << "Usage: " << argv[0] << "[<kokkos_options>] <size>" << std::endl;
-    Kokkos::finalize();
-    exit(1);
-  }
-
-  const int n = std::stoi(argv[1], nullptr, 10);
-
-  std::cout << "Number of even integers from 0 to " << n - 1 << std::endl;
-
-  Kokkos::View<float*> v("V", n), seqRes("SeqRes", n), parRes("ParRes", n);
-
-  for (int i = 0; i < n; i++)
-    v(i) = 0.0;
-
-  float expRes = 0.0f;
-
-  // sequential
-
-  Kokkos::Timer timer;
-  timer.reset();
-
-  for (int i = 0; i < n; i++) {
-    seqRes(i) = Kokkos::log(Kokkos::exp(Kokkos::log(Kokkos::exp(Kokkos::log(Kokkos::exp(v(i)))))));
-  }
-
-  double count_time = timer.seconds();
-  std::cout << "  Sequential: " << count_time << std::endl;
-
-  for (int i = 0; i < n; i++)
-    if (std::abs(seqRes(i) - expRes) > 1e-8) {
-      std::cout << "Error in sequential " << i << ": " << seqRes(i) << " instead of " << expRes << std::endl;
-      Kokkos::finalize();
-      exit(1);
-    }
-
-  timer.reset();
-
-  // parallel
-
-  Kokkos::parallel_for(
-    n, KOKKOS_LAMBDA(const int i) {
-    parRes(i) = Kokkos::log(Kokkos::exp(Kokkos::log(Kokkos::exp(Kokkos::log(Kokkos::exp(v(i)))))));
-  });
-
-  count_time = timer.seconds();
-  std::cout << "  Parallel: " << count_time << std::endl;
-
-  for (int i = 0; i < n; i++)
-    if (std::abs(parRes(i) - expRes) > 1e-8) {
-      std::cout << "Error in parallel " << i << ": " << parRes(i) << " instead of " << expRes << std::endl;
-      Kokkos::finalize();
-      exit(1);
-    }
-
-  Kokkos::finalize();
-}
+//#include <Kokkos_Core.hpp>
+//#include <cmath>
+//#include <string>
+//
+//int main(int argc, char* argv[]) {
+//  Kokkos::initialize(
+//    Kokkos::InitializationSettings()
+//    .set_disable_warnings(false)
+//    .set_num_threads(2));
+//  //Kokkos::initialize(argc, argv);
+//  Kokkos::DefaultExecutionSpace{}.print_configuration(std::cout);
+//
+//
+//  std::cout << "SMOTRIII SKOLKO POTOKOV: " << omp_get_num_threads() << std::endl;
+//
+//
+//  if (argc < 2) {
+//    std::cout << "Usage: " << argv[0] << "[<kokkos_options>] <size>" << std::endl;
+//    Kokkos::finalize();
+//    exit(1);
+//  }
+//
+//  const int n = std::stoi(argv[1], nullptr, 10);
+//
+//  std::cout << "Number of even integers from 0 to " << n - 1 << std::endl;
+//
+//  Kokkos::View<float*> v("V", n), seqRes("SeqRes", n), parRes("ParRes", n);
+//
+//  for (int i = 0; i < n; i++)
+//    v(i) = 0.0;
+//
+//  float expRes = 0.0f;
+//
+//  // sequential
+//
+//  Kokkos::Timer timer;
+//  timer.reset();
+//
+//  for (int i = 0; i < n; i++) {
+//    seqRes(i) = Kokkos::log(Kokkos::exp(Kokkos::log(Kokkos::exp(Kokkos::log(Kokkos::exp(v(i)))))));
+//  }
+//
+//  double count_time = timer.seconds();
+//  std::cout << "  Sequential: " << count_time << std::endl;
+//
+//  for (int i = 0; i < n; i++)
+//    if (std::abs(seqRes(i) - expRes) > 1e-8) {
+//      std::cout << "Error in sequential " << i << ": " << seqRes(i) << " instead of " << expRes << std::endl;
+//      Kokkos::finalize();
+//      exit(1);
+//    }
+//
+//  timer.reset();
+//
+//  // parallel
+//
+//  Kokkos::parallel_for(
+//    n, KOKKOS_LAMBDA(const int i) {
+//    parRes(i) = Kokkos::log(Kokkos::exp(Kokkos::log(Kokkos::exp(Kokkos::log(Kokkos::exp(v(i)))))));
+//  });
+//
+//  count_time = timer.seconds();
+//  std::cout << "  Parallel: " << count_time << std::endl;
+//
+//  for (int i = 0; i < n; i++)
+//    if (std::abs(parRes(i) - expRes) > 1e-8) {
+//      std::cout << "Error in parallel " << i << ": " << parRes(i) << " instead of " << expRes << std::endl;
+//      Kokkos::finalize();
+//      exit(1);
+//    }
+//
+//  Kokkos::finalize();
+//}
 
 
 

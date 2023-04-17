@@ -14,7 +14,8 @@ if(NOT CMAKE_BUILD_TYPE) # проверка имеющихся у компиля
 endif()
 
 #Добавляем директорию с под-CMakeList-ом, и выполняем под-CMakeList
+add_subdirectory(kokkos)
 add_subdirectory(Serial_version)
 add_subdirectory(Parallel_openMP_version)
 add_subdirectory(Kokkos_version)
-add_subdirectory(kokkosLib)
+

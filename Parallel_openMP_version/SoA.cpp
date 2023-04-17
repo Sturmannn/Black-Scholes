@@ -84,9 +84,8 @@ int main(int argc, char* argv[])
   //  std::cout << "T =  " << sample.T[i] << std::endl;
   //  std::cout << std::endl;
   //}
-
+  std::cout << "Kol-vo potokov: " << omp_get_num_threads() << "\n";
   std::cout << "dt = " << dt << std::endl;
-  system("pause");
   DeteleStruct(sample);
   return 0;
 }
