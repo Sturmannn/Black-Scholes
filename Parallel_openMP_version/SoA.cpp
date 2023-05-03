@@ -3,24 +3,10 @@
 #include <cstdlib>
 #include <omp.h>
 
+#include <fstream>
+
 struct Option
 {
-<<<<<<< HEAD
-  float* s0; // ˆÂÌ‡ ‡ÍˆËË ‚ Ì‡˜‡Î¸ÌÓÂ ‚ÂÏˇ
-  float* T;  // ‚ÂÏˇ ËÒÔÓÎÌÂÌËˇ ÓÔˆËÓÌ‡ ‚ „Ó‰‡ı
-  float* K;  // ÒÚ‡ÈÍ
-  float* C;  // —Ô‡‚Â‰ÎË‚‡ˇ ˆÂÌ‡ ÓÔˆËÓÌ‡
-};
-
-const float sig = 0.2f; // ‚ÓÎ‡ÚËÎ¸ÌÓÒÚ¸
-const float r = 0.05f; // ÔÓˆÂÌÚÌ‡ˇ ÒÚ‡‚Í‡
-
-float start, finish; // Á‡ÏÂ˚ ‚ÂÏÂÌË (Á‡ÒÂ˜ÍË)
-float dt; // ‚ÂÏˇ ‡·ÓÚ˚ ·ÎÓÍ‡ ÍÓ‰‡ (ËÁÏÂÌÂÌËÂ ‚ÂÏÂÌË)
-const int N = 50000000; // ÍÓÎË˜ÂÒÚ‚Ó ÓÔˆËÓÌÓ‚ ‰Îˇ ÔÓ‰Ò˜∏Ú‡
-
-const float invsqrt2 = std::sqrt(2.0f); // ËÌ‚‡Ë‡ÌÚ˚
-=======
   float* s0; // —Ü–µ–Ω–∞ –∞–∫—Ü–∏–∏ –≤ –Ω–∞—á–∞–ª—å–Ω–æ–µ –≤—Ä–µ–º—è
   float* T;  // –≤—Ä–µ–º—è –∏—Å–ø–æ–ª–Ω–µ–Ω–∏—è –æ–ø—Ü–∏–æ–Ω–∞ –≤ –≥–æ–¥–∞—Ö
   float* K;  // —Å—Ç—Ä–∞–π–∫
@@ -35,9 +21,7 @@ float dt; // –≤—Ä–µ–º—è —Ä–∞–±–æ—Ç—ã –±–ª–æ–∫–∞ –∫–æ–¥–∞ (–∏–∑–º–µ–Ω–µ–Ω–∏–µ –≤—
 const int N = 50000000; // –∫–æ–ª–∏—á–µ—Å—Ç–≤–æ –æ–ø—Ü–∏–æ–Ω–æ–≤ –¥–ª—è –ø–æ–¥—Å—á—ë—Ç–∞
 
 const float invsqrt2 = std::sqrt(2.0f); // –∏–Ω–≤–∞—Ä–∏–∞–Ω—Ç—ã
->>>>>>> 73cb63aa4ea501dfc3f01d97286602306d5f6673
 const float inv_square_sig = sig * sig;
-
 
 void AllocMemForStruct(Option& opt)
 {
@@ -46,6 +30,7 @@ void AllocMemForStruct(Option& opt)
   opt.T = new float[N];
   opt.s0 = new float[N];
 }
+
 void DeteleStruct(Option& opt)
 {
   delete[] opt.C;
@@ -80,15 +65,11 @@ int main(int argc, char* argv[])
   Option sample;
   AllocMemForStruct(sample);
 
-  #pragma omp parallel for
+  #pragma omp parallel for 
   for (int i = 0; i < N; i++)
   {
     sample.K[i] = (float)rand() / (float)RAND_MAX * (250.0f - 50.0f) + 50.0f;
-<<<<<<< HEAD
-    sample.s0[i] = (float)rand() / (float)RAND_MAX * (150.0f - 50.0f) + 50.0f; // —ÎÛ˜‡ÈÌ˚Â ˜ËÒÎ‡ ‚ ‰Ë‡Ô‡ÁÓÌÂ
-=======
     sample.s0[i] = (float)rand() / (float)RAND_MAX * (150.0f - 50.0f) + 50.0f; // –°–ª—É—á–∞–π–Ω—ã–µ —á–∏—Å–ª–∞ –≤ –¥–∏–∞–ø–∞–∑–æ–Ω–µ
->>>>>>> 73cb63aa4ea501dfc3f01d97286602306d5f6673
     sample.T[i] = (float)rand() / (float)RAND_MAX * (5.0f - 1.0f) + 1.0f;
   }
 
@@ -96,19 +77,15 @@ int main(int argc, char* argv[])
   GetOptionPrices(sample);
   finish = (float)omp_get_wtime();
   dt = (float)finish - (float)start;
+  
+  std::ofstream out("H:\\source\\repos\\ITLab\\Black_Scholes-without kokkos\\Black-Scholes\\Zameri.txt", std::ios::app); // –£–∫–∞–∑–∞—Ç—å —Å–≤–æ–π –ø—É—Ç—å –¥–ª—è –∑–∞–ø–∏—Å–∏ —Ä–µ–∑—É–ª—å—Ç–∞—Ç–∞ –∑–∞–º–µ—Ä–æ–≤ –≤—Ä–µ–º–µ–Ω–∏ –≤ —Ç–µ–∫—Å—Ç–æ–≤—ã–π —Ñ–∞–π–ª
+  if (out.is_open())
+  {
+    out << dt << std::endl;
+  }
+  else std::cout << "File can't open!";
+  out.close();
 
-  //for (int i = 0; i < 3; i++)
-  //{
-  //  std::cout << "C =  " << sample.C[i] << std::endl;
-  //  std::cout << "K =  " << sample.K[i] << std::endl;
-  //  std::cout << "s0 =  " << sample.s0[i] << std::endl;
-  //  std::cout << "T =  " << sample.T[i] << std::endl;
-  //  std::cout << std::endl;
-  //}
-
-  std::cout << "dt = " << dt << std::endl;
-  system("pause");
   DeteleStruct(sample);
   return 0;
 }
-
