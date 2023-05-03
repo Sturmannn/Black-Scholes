@@ -1,93 +1,125 @@
-//#include <cmath>
-//#include <iostream>
-//#include <cstdlib>
-//#include <omp.h>
-//
-//struct Option
-//{
-//  float* s0; // цена акции в начальное время
-//  float* T;  // время исполнения опциона в годах
-//  float* K;  // страйк
-//  float* C;  // Справедливая цена опциона
-//};
-//
-//const float sig = 0.2f; // волатильность
-//const float r = 0.05f; // процентная ставка
-//
-//float start, finish; // замеры времени (засечки)
-//float dt; // время работы блока кода (изменение времени)
-//const int N = 50000000; // количество опционов для подсчёта
-//
-//const float invsqrt2 = std::sqrt(2.0f); // инварианты
-//const float inv_square_sig = sig * sig;
-//
-//
-//void AllocMemForStruct(Option& opt)
-//{
-//  opt.C = new float[N];
-//  opt.K = new float[N];
-//  opt.T = new float[N];
-//  opt.s0 = new float[N];
-//}
-//void DeteleStruct(Option& opt)
-//{
-//  delete[] opt.C;
-//  delete[] opt.K;
-//  delete[] opt.T;
-//  delete[] opt.s0;
-//}
-//
-//void GetOptionPrices(Option& opt)
-//{
-//  float d1, d2, erf1, erf2;
-//  #pragma omp parallel private(d1,d2,erf1,erf2)
-//  {
-//    #pragma omp for
-//    for (int i = 0; i < N; i++)
-//    {
-//      d1 = (std::log(opt.s0[i] / opt.K[i]) + (r + inv_square_sig / 2) * opt.T[i]) / (sig * std::sqrt(opt.T[i]));
-//      d2 = (std::log(opt.s0[i] / opt.K[i]) + (r - inv_square_sig / 2) * opt.T[i]) / (sig * std::sqrt(opt.T[i]));
-//      erf1 = 0.5f + std::erf(d1 / invsqrt2) * 0.5f;
-//      erf2 = 0.5f + std::erf(d2 / invsqrt2) * 0.5f;
-//
-//      opt.C[i] = opt.s0[i] * erf1 - opt.K[i] * std::exp((-1.0f) * r * opt.T[i]) * erf2;
-//    }
-//  }
-//}
-//
-//int main(int argc, char* argv[])
-//{
-//  omp_set_num_threads(8);
-//  srand(5);
-//
-//  Option sample;
-//  AllocMemForStruct(sample);
-//
-//  #pragma omp parallel for
-//  for (int i = 0; i < N; i++)
-//  {
-//    sample.K[i] = (float)rand() / (float)RAND_MAX * (250.0f - 50.0f) + 50.0f;
-//    sample.s0[i] = (float)rand() / (float)RAND_MAX * (150.0f - 50.0f) + 50.0f; // Случайные числа в диапазоне
-//    sample.T[i] = (float)rand() / (float)RAND_MAX * (5.0f - 1.0f) + 1.0f;
-//  }
-//
-//  start = (float)omp_get_wtime();
-//  GetOptionPrices(sample);
-//  finish = (float)omp_get_wtime();
-//  dt = (float)finish - (float)start;
-//
-//  //for (int i = 0; i < 3; i++)
-//  //{
-//  //  std::cout << "C =  " << sample.C[i] << std::endl;
-//  //  std::cout << "K =  " << sample.K[i] << std::endl;
-//  //  std::cout << "s0 =  " << sample.s0[i] << std::endl;
-//  //  std::cout << "T =  " << sample.T[i] << std::endl;
-//  //  std::cout << std::endl;
-//  //}
-//
-//  std::cout << "dt = " << dt << std::endl;
-//  system("pause");
-//  DeteleStruct(sample);
-//  return 0;
-//}
-//
+#include <iostream>
+#include <Kokkos_Core.hpp>
+#include <Kokkos_Random.hpp>
+#include <Kokkos_Timer.hpp>
+#include <Kokkos_MathematicalFunctions.hpp>
+#include <fstream>
+
+struct Option
+{
+  Kokkos::View<float*, Kokkos::SharedSpace> s0; // С†РµРЅР° Р°РєС†РёРё РІ РЅР°С‡Р°Р»СЊРЅРѕРµ РІСЂРµРјСЏ
+  Kokkos::View<float*, Kokkos::SharedSpace> T;  // РІСЂРµРјСЏ РёСЃРїРѕР»РЅРµРЅРёСЏ РѕРїС†РёРѕРЅР° РІ РіРѕРґР°С…
+  Kokkos::View<float*, Kokkos::SharedSpace> K;  // СЃС‚СЂР°Р№Рє
+  Kokkos::View<float*, Kokkos::SharedSpace> C;  // РЎРїСЂР°РІРµРґР»РёРІР°СЏ С†РµРЅР° РѕРїС†РёРѕРЅР°
+};
+
+const float sig = 0.2f; // РІРѕР»Р°С‚РёР»СЊРЅРѕСЃС‚СЊ
+const float r = 0.05f; // РїСЂРѕС†РµРЅС‚РЅР°СЏ СЃС‚Р°РІРєР°
+const int N = 50000000; // РєРѕР»РёС‡РµСЃС‚РІРѕ РѕРїС†РёРѕРЅРѕРІ РґР»СЏ РїРѕРґСЃС‡С‘С‚Р°
+
+
+//const float invsqrt2 = Kokkos::sqrt(2.0f); // РёРЅРІР°СЂРёР°РЅС‚С‹
+//Kokkos::View<float*, Kokkos::SharedSpace> invsqrt2("sqrt2", 1);
+//invsqrt2(0) = Kokkos::sqrt(2.0f);
+const float inv_square_sig = sig * sig;
+const float invsqrt2 = 1.414213f;
+
+void Set_Count_Of_Options(Option& opt)
+{
+  Kokkos::resize(Kokkos::WithoutInitializing, opt.C, N);
+  Kokkos::resize(Kokkos::WithoutInitializing, opt.K, N);
+  Kokkos::resize(Kokkos::WithoutInitializing, opt.T, N);
+  Kokkos::resize(Kokkos::WithoutInitializing, opt.s0, N);
+}
+
+void GetOptionPrices(Option& opt)
+{
+  Kokkos::parallel_for(
+    Kokkos::RangePolicy<Kokkos::DefaultExecutionSpace>(
+      Kokkos::DefaultExecutionSpace(), 0, N),
+    KOKKOS_LAMBDA(const int& i)
+  {
+    float d1, d2, erf1, erf2;
+    d1 = (Kokkos::log(opt.s0(i) / opt.K(i)) + (r + inv_square_sig / 2) * opt.T(i)) / (sig * Kokkos::sqrt(opt.T(i)));
+    d2 = (Kokkos::log(opt.s0(i) / opt.K(i)) + (r - inv_square_sig / 2) * opt.T(i)) / (sig * Kokkos::sqrt(opt.T(i)));
+    erf1 = 0.5f + Kokkos::erf(d1 / invsqrt2) * 0.5f;
+    erf2 = 0.5f + Kokkos::erf(d2 / invsqrt2) * 0.5f;
+
+    opt.C(i) = opt.s0(i) * erf1 - opt.K(i) * Kokkos::exp((-1.0f) * r * opt.T(i)) * erf2;
+  });
+}
+
+int main(int argc, char* argv[])
+{
+  Kokkos::initialize(
+    Kokkos::InitializationSettings()
+    .set_disable_warnings(false)
+  );
+  {
+    Kokkos::DefaultExecutionSpace{}.print_configuration(std::cout);
+
+    Kokkos::Random_XorShift64_Pool<> random_pool(5);
+
+    Option sample;
+    Set_Count_Of_Options(sample);
+
+    Kokkos::parallel_for(
+      Kokkos::RangePolicy<Kokkos::DefaultExecutionSpace>(
+        Kokkos::DefaultExecutionSpace(), 0, N),
+      KOKKOS_LAMBDA(const int& i)
+    {
+      auto generator = random_pool.get_state();
+
+      sample.K(i) = (float)generator.rand() / (float)generator.MAX_RAND * (250.0f - 50.0f) + 50.0f;
+      sample.s0(i) = (float)generator.rand() / (float)generator.MAX_RAND * (150.0f - 50.0f) + 50.0f; // РЎР»СѓС‡Р°Р№РЅС‹Рµ С‡РёСЃР»Р° РІ РґРёР°РїР°Р·РѕРЅРµ
+      sample.T(i) = (float)generator.rand() / (float)generator.MAX_RAND * (5.0f - 1.0f) + 1.0f;
+      random_pool.free_state(generator);
+    });
+
+    Kokkos::fence();
+
+    Kokkos::Timer timer;
+    timer.reset();
+
+    GetOptionPrices(sample);
+
+    Kokkos::fence();
+
+    float finish = (float)timer.seconds();
+
+    for (int i = 0; i < 5; i++)
+    {
+      std::cout << "C =  " << sample.C(i) << std::endl;
+      std::cout << "K =  " << sample.K(i) << std::endl;
+      std::cout << "s0 =  " << sample.s0(i) << std::endl;
+      std::cout << "T =  " << sample.T(i) << std::endl;
+      std::cout << std::endl;
+    }
+
+    std::cout << "\n";
+
+    if (Kokkos::abs(sample.C(0) - 0.673959f) > 0.1f) std::cout << "WRONG 0!!!\n";
+    if (Kokkos::abs(sample.C(1) - 59.3232f) > 0.1f) std::cout << "WRONG 1!!!\n";
+    if (Kokkos::abs(sample.C(2) - 2.29951f) > 0.1f) std::cout << "WRONG 2!!!\n";
+    if (Kokkos::abs(sample.C(3) - 8.74785e-05f) > 0.1f) std::cout << "WRONG 3!!!\n";
+    if (Kokkos::abs(sample.C(4) - 32.6059f) > 0.1f) std::cout << "WRONG 4!!!\n";
+
+    if (Kokkos::abs(sample.C(N - 1) - 21.0418f) > 0.1f) std::cout << "WRONG N - 1!!!\n";
+    if (Kokkos::abs(sample.C(N - 2) - 0.466208f) > 0.1f) std::cout << "WRONG N - 2!!!\n";
+    if (Kokkos::abs(sample.C(N - 3) - 1.07279f) > 0.1f) std::cout << "WRONG N - 3!!!\n";
+    if (Kokkos::abs(sample.C(N - 4) - 3.18158f) > 0.1f) std::cout << "WRONG N - 4!!!\n";
+    if (Kokkos::abs(sample.C(N - 5) - 18.6211f) > 0.1f) std::cout << "WRONG N - 5!!!\n";
+
+
+    std::ofstream out("/common/home/durandin_v/Black-Scholes/Zameri.txt", std::ios::app);
+    if (out.is_open())
+    {
+      out << finish << std::endl;
+    }
+    else std::cout << "File can't open!";
+    out.close();
+    std::cout << "Execution Time: " << finish << "\n";
+  }
+  Kokkos::finalize();
+  return 0;
+}
