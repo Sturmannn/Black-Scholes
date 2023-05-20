@@ -9,17 +9,15 @@
 
 struct Option
 {
-  Kokkos::View<float*, Kokkos::SharedSpace> s0; // цена акции в начальное время
-  Kokkos::View<float*, Kokkos::SharedSpace> T;  // время исполнения опциона в годах
-  Kokkos::View<float*, Kokkos::SharedSpace> K;  // страйк
-  Kokkos::View<float*, Kokkos::SharedSpace> C;  // Справедливая цена опциона
+  Kokkos::View<float*, Kokkos::SharedSpace> s0; // stock price at initial time
+  Kokkos::View<float*, Kokkos::SharedSpace> T;  // option exercise time in years
+  Kokkos::View<float*, Kokkos::SharedSpace> K;  // strike
+  Kokkos::View<float*, Kokkos::SharedSpace> C;  // Fair option price
 };
 
-
-
-const float sig = 0.2f; // волатильность
-const float r = 0.05f; // процентная ставка
-const int N = 50000000; // количество опционов для подсчёта
+const float sig = 0.2f; // volatility
+const float r = 0.05f; // interest rate
+const int N = 50000000; // number of options to count
 
 const float inv_square_sig = sig * sig;
 //Kokkos::View<float*, Kokkos::SharedSpace> e("e", N);
@@ -75,13 +73,15 @@ int main(int argc, char* argv[])
     {
       auto generator = random_pool.get_state();
 
+      //Random numbers in a range
+
       sample.K(i) = (float)generator.rand() / (float)generator.MAX_RAND * (250.0f - 50.0f) + 50.0f;
-      sample.s0(i) = (float)generator.rand() / (float)generator.MAX_RAND * (150.0f - 50.0f) + 50.0f; // Случайные числа в диапазоне
+      sample.s0(i) = (float)generator.rand() / (float)generator.MAX_RAND * (150.0f - 50.0f) + 50.0f;
       sample.T(i) = (float)generator.rand() / (float)generator.MAX_RAND * (5.0f - 1.0f) + 1.0f;
       random_pool.free_state(generator);
     });
 
-    Kokkos::fence();
+    Kokkos::fence(); //Synchronization
 
     float init_time = timer.seconds();
 
@@ -93,19 +93,44 @@ int main(int argc, char* argv[])
 
     float exec_time = (float)timer.seconds();
 
-    for (int i = 0; i < 5; i++)
+    //=================================================================================================
+    //Check correctness on the CPU
+    float d1, d2, erf1, erf2, res;
+
+    for (int i = 0; i < 3; i++)
     {
-      std::cout << "C =  " << sample.C(i) << std::endl;
-      std::cout << "K =  " << sample.K(i) << std::endl;
-      std::cout << "s0 =  " << sample.s0(i) << std::endl;
-      std::cout << "T =  " << sample.T(i) << std::endl;
-      std::cout << std::endl;
+      d1 = (std::log(sample.s0[i] / sample.K[i]) + (r + inv_square_sig / 2) * sample.T[i]) / (sig * std::sqrt(sample.T[i]));
+      d2 = (std::log(sample.s0[i] / sample.K[i]) + (r - inv_square_sig / 2) * sample.T[i]) / (sig * std::sqrt(sample.T[i]));
+      erf1 = 0.5f + std::erf(d1 / invsqrt2) * 0.5f;
+      erf2 = 0.5f + std::erf(d2 / invsqrt2) * 0.5f;
+
+      res = sample.s0[i] * erf1 - sample.K[i] * std::exp((-1.0f) * r * sample.T[i]) * erf2;
+      if (std::abs(res - sample.C(i)) > 0.1f)
+      {
+        std::cout << "Wrong computing " << std::endl;
+        break;
+      }
     }
+
+    for (int i = N; i > N - 3; i--)
+    {
+      d1 = (std::log(sample.s0[i] / sample.K[i]) + (r + inv_square_sig / 2) * sample.T[i]) / (sig * std::sqrt(sample.T[i]));
+      d2 = (std::log(sample.s0[i] / sample.K[i]) + (r - inv_square_sig / 2) * sample.T[i]) / (sig * std::sqrt(sample.T[i]));
+      erf1 = 0.5f + std::erf(d1 / invsqrt2) * 0.5f;
+      erf2 = 0.5f + std::erf(d2 / invsqrt2) * 0.5f;
+
+      res = sample.s0[i] * erf1 - sample.K[i] * std::exp((-1.0f) * r * sample.T[i]) * erf2;
+      if (std::abs(res - sample.C(i)) > 0.1f)
+      {
+        std::cout << "Wrong computing " << std::endl;
+        break;
+      }
+    }
+    //=================================================================================================
 
     std::cout << "\n";
 
-    if (Kokkos::abs(sample.C(0) - 0.673959f) > 0.1f) std::cout << "WRONG 0!!!\n";
-
+    //Outputting time to a file (specify your path to the file)
     std::ofstream out("/common/home/durandin_v/Black-Scholes/Zameri.txt", std::ios::app);
     if (out.is_open())
     {
@@ -114,8 +139,9 @@ int main(int argc, char* argv[])
     else std::cout << "File can't open!";
     out.close();
 
-    std::cout << "Initialization time" << init_time << "\n";
+    std::cout << "Initialization time: " << init_time << "\n";
     std::cout << "Execution Time: " << exec_time << "\n";
+    std::cout << "Initialization time + Execution Time: " << init_time + exec_time << std::endl;
   }
 
   Kokkos::finalize();
