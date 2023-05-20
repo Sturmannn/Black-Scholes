@@ -3,11 +3,12 @@
 #include <Kokkos_Random.hpp>
 #include <Kokkos_Timer.hpp>
 #include <Kokkos_MathematicalFunctions.hpp>
+#include <cmath>
 #include <fstream>
 
-const float sig = 0.2f; // волатильность
-const float r = 0.05f; // процентная ставка
-const int N = 50000000; // количество опционов для подсчёта
+const float sig = 0.2f; // volatility
+const float r = 0.05f; // interest rate
+const int N = 50000000; // number of options to count
 
 const float inv_square_sig = sig * sig;
 //Kokkos::View<float*, Kokkos::SharedSpace> e("e", N);
@@ -17,10 +18,10 @@ const float invsqrt2 = 1.414213f;
 
 struct Option
 {
-  Kokkos::View<float*, Kokkos::DefaultExecutionSpace::memory_space> s0; // цена акции в начальное время
-  Kokkos::View<float*, Kokkos::DefaultExecutionSpace::memory_space> T;  // время исполнения опциона в годах
-  Kokkos::View<float*, Kokkos::DefaultExecutionSpace::memory_space> K;  // страйк
-  Kokkos::View<float*, Kokkos::DefaultExecutionSpace::memory_space> C;  // Справедливая цена опциона
+  Kokkos::View<float*, Kokkos::DefaultExecutionSpace::memory_space> s0; // stock price at initial time
+  Kokkos::View<float*, Kokkos::DefaultExecutionSpace::memory_space> T;  // option exercise time in years
+  Kokkos::View<float*, Kokkos::DefaultExecutionSpace::memory_space> K;  // strike
+  Kokkos::View<float*, Kokkos::DefaultExecutionSpace::memory_space> C;  // Fair option price
 
   Kokkos::View<float*, Kokkos::DefaultExecutionSpace::memory_space>::HostMirror host_s0;
   Kokkos::View<float*, Kokkos::DefaultExecutionSpace::memory_space>::HostMirror host_T;
@@ -98,50 +99,84 @@ int main(int argc, char* argv[])
     {
       Kokkos::Random_XorShift64<Kokkos::DefaultExecutionSpace> generator = random_pool.get_state();
 
+      //Random numbers in a range
+
       sample.K(i) = (float)generator.rand() / (float)generator.MAX_RAND * (250.0f - 50.0f) + 50.0f;
-      sample.s0(i) = (float)generator.rand() / (float)generator.MAX_RAND * (150.0f - 50.0f) + 50.0f; // Случайные числа в диапазоне
+      sample.s0(i) = (float)generator.rand() / (float)generator.MAX_RAND * (150.0f - 50.0f) + 50.0f;
       sample.T(i) = (float)generator.rand() / (float)generator.MAX_RAND * (5.0f - 1.0f) + 1.0f;
       random_pool.free_state(generator);
     });
 
-    Kokkos::fence();
+    Kokkos::fence(); //Synchronization
 
+    //Initialization time
     std::cout << "Device init execution time: " << (float)timer.seconds() << "\n";
 
+    //It is assumed that at this stage we will need this data on the host (for real tasks)
     timer.reset();
-    Deep_Copy_Device_To_Host(sample); // Предполагается, что на этом этапе нам понадобятся эти данные на хосте (для реальных задач)
-    std::cout << "Deep copy to host after device-init: " << (float)timer.seconds() << "\n";
+    Deep_Copy_Device_To_Host(sample);
 
     Kokkos::fence();
+    std::cout << "Deep copy to host after device-init: " << (float)timer.seconds() << "\n";
 
+
+    //GPU Computation Time
     timer.reset();
     GetOptionPrices(sample);
     Kokkos::fence();
     float exec_time = (float)timer.seconds();
     std::cout << "Device execution time: " << exec_time << "\n";
 
+    //It is assumed that at this stage we will need this data on the host (for real tasks)
     timer.reset();
-    Deep_Copy_Device_To_Host(sample); // Предполагается, что на этом этапе нам понадобятся эти данные на хосте (для реальных задач)
+    Deep_Copy_Device_To_Host(sample);
+    Kokkos::fence();
     std::cout << "Deep copy to host after device-exec: " << (float)timer.seconds() << "\n";
 
+    //To compare transfer time from device to host and vice versa
     timer.reset();
-    Deep_Copy_Host_To_Device(sample); // Для сравнения времени передачи с устройства на хост и наоборот
+    Deep_Copy_Host_To_Device(sample);
+    Kokkos::fence();
     std::cout << "Deep copy to device after device-host: " << (float)timer.seconds() << "\n";
 
+    std::cout << std::endl;
 
-    for (int i = 0; i < 5; i++)
+    //=================================================================================================
+    //Check correctness on the CPU
+    float d1, d2, erf1, erf2, res;
+
+    for (int i = 0; i < 3; i++)
     {
-      std::cout << "C =  " << sample.C(i) << std::endl;
-      std::cout << "K =  " << sample.K(i) << std::endl;
-      std::cout << "s0 =  " << sample.s0(i) << std::endl;
-      std::cout << "T =  " << sample.T(i) << std::endl;
-      std::cout << std::endl;
+      d1 = (std::log(sample.host_s0[i] / sample.host_K[i]) + (r + inv_square_sig / 2) * sample.host_T[i]) / (sig * std::sqrt(sample.host_T[i]));
+      d2 = (std::log(sample.host_s0[i] / sample.host_K[i]) + (r - inv_square_sig / 2) * sample.host_T[i]) / (sig * std::sqrt(sample.host_T[i]));
+      erf1 = 0.5f + std::erf(d1 / invsqrt2) * 0.5f;
+      erf2 = 0.5f + std::erf(d2 / invsqrt2) * 0.5f;
+
+      res = sample.host_s0[i] * erf1 - sample.host_K[i] * std::exp((-1.0f) * r * sample.host_T[i]) * erf2;
+      if (std::abs(res - sample.host_C(i)) > 0.1f)
+      {
+        std::cout << "Wrong computing " << std::endl;
+        break;
+      }
     }
 
-    std::cout << "\n";
+    for (int i = N; i > N - 3; i--)
+    {
+      d1 = (std::log(sample.host_s0[i] / sample.host_K[i]) + (r + inv_square_sig / 2) * sample.host_T[i]) / (sig * std::sqrt(sample.host_T[i]));
+      d2 = (std::log(sample.host_s0[i] / sample.host_K[i]) + (r - inv_square_sig / 2) * sample.host_T[i]) / (sig * std::sqrt(sample.host_T[i]));
+      erf1 = 0.5f + std::erf(d1 / invsqrt2) * 0.5f;
+      erf2 = 0.5f + std::erf(d2 / invsqrt2) * 0.5f;
 
-    if (Kokkos::abs(sample.C(0) - 0.673959f) > 0.1f) std::cout << "WRONG 0!!!\n";
+      res = sample.host_s0[i] * erf1 - sample.host_K[i] * std::exp((-1.0f) * r * sample.host_T[i]) * erf2;
+      if (std::abs(res - sample.host_C(i)) > 0.1f)
+      {
+        std::cout << "Wrong computing " << std::endl;
+        break;
+      }
+    }
+    //=================================================================================================
 
+    //Outputting time to a file (specify your path to the file)
     std::ofstream out("/common/home/durandin_v/Black-Scholes/Zameri.txt", std::ios::app);
     if (out.is_open())
     {
