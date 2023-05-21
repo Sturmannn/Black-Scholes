@@ -5,20 +5,20 @@
 
 struct Option
 {
-  float s0 = 0.0f; // цена акции в начальное время
-  float T = 0.0f; // время исполнения опциона в годах
-  float K = 0.0f; // страйк
-  float C = 0.0f; // Справедливая цена опциона
+  float s0; // С†РµРЅР° Р°РєС†РёРё РІ РЅР°С‡Р°Р»СЊРЅРѕРµ РІСЂРµРјСЏ
+  float T;// РІСЂРµРјСЏ РёСЃРїРѕР»РЅРµРЅРёСЏ РѕРїС†РёРѕРЅР° РІ РіРѕРґР°С…
+  float K;// СЃС‚СЂР°Р№Рє
+  float C;// РЎРїСЂР°РІРµРґР»РёРІР°СЏ С†РµРЅР° РѕРїС†РёРѕРЅР°
 };
 
-const float sig = 0.2f; // волатильность
-const float r = 0.05f; // процентная ставка
+const float sig = 0.2f; // РІРѕР»Р°С‚РёР»СЊРЅРѕСЃС‚СЊ
+const float r = 0.05f; // РїСЂРѕС†РµРЅС‚РЅР°СЏ СЃС‚Р°РІРєР°
 
-float start, finish; // замеры времени (засечки)
-float dt; // время работы блока кода (изменение времени)
-const int N = 50000000; // количество опционов для подсчёта
+float start, finish; // Р·Р°РјРµСЂС‹ РІСЂРµРјРµРЅРё (Р·Р°СЃРµС‡РєРё)
+float dt; // РІСЂРµРјСЏ СЂР°Р±РѕС‚С‹ Р±Р»РѕРєР° РєРѕРґР° (РёР·РјРµРЅРµРЅРёРµ РІСЂРµРјРµРЅРё)
+const int N = 50000000; // РєРѕР»РёС‡РµСЃС‚РІРѕ РѕРїС†РёРѕРЅРѕРІ РґР»СЏ РїРѕРґСЃС‡С‘С‚Р°
 
-const float invsqrt2 = std::sqrt(2.0f); // инварианты
+const float invsqrt2 = std::sqrt(2.0f); // РёРЅРІР°СЂРёР°РЅС‚С‹
 const float inv_square_sig = sig * sig;
 
 void GetOptionPrices(Option* opt)
@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
   for (int i = 0; i < N; i++)
   {
     sample[i].K = (float)rand() / (float)RAND_MAX * (250.0f - 50.0f) + 50.0f;
-    sample[i].s0 = (float)rand() / (float)RAND_MAX * (150.0f - 50.0f) + 50.0f; // Случайные числа в диапазоне
+    sample[i].s0 = (float)rand() / (float)RAND_MAX * (150.0f - 50.0f) + 50.0f; // РЎР»СѓС‡Р°Р№РЅС‹Рµ С‡РёСЃР»Р° РІ РґРёР°РїР°Р·РѕРЅРµ
     sample[i].T = (float)rand() / (float)RAND_MAX * (5.0f - 1.0f) + 1.0f;
   }
 
@@ -51,14 +51,6 @@ int main(int argc, char* argv[])
   finish = (float)omp_get_wtime();
   dt = (float)finish - (float)start;
 
-  //for (int i = 0; i < 3; i++)
-  //{
-  //  std::cout << "C =  " << sample[i].C << std::endl;
-  //  std::cout << "K =  " << sample[i].K << std::endl;
-  //  std::cout << "s0 =  " << sample[i].s0 << std::endl;
-  //  std::cout << "T =  " << sample[i].T << std::endl;
-  //  std::cout << std::endl;
-  //}
 
   std::cout << "dt = " << dt << std::endl;
   delete[] sample;
